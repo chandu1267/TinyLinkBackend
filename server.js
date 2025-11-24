@@ -5,13 +5,32 @@ const cors = require("cors");
 const Link = require("./models/Link");
 
 const app = express();
-app.use(cors());
+
+/* ------------ CORS CONFIG ------------- */
+const allowedOrigins = [
+  "http://localhost:5173",
+  "http://localhost:3000",
+  "https://tiny-link-xi.vercel.app"
+];
+
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      if (!origin) return callback(null, true); // Postman, etc.
+      if (allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  })
+);
+
 app.use(express.json());
 
-// Debug: show mongo uri
 console.log("MONGODB_URI:", process.env.MONGODB_URI);
 
-// Connect to MongoDB
 mongoose
   .connect(process.env.MONGODB_URI, {
     serverSelectionTimeoutMS: 5000,
@@ -22,9 +41,6 @@ mongoose
     console.error(err);
   });
 
-/* -------------------------------------
-   HELPER FUNCTIONS
-------------------------------------- */
 function isValidUrl(url) {
   try {
     new URL(url);
@@ -44,10 +60,6 @@ function generateCode() {
   }
   return code;
 }
-
-/* -------------------------------------
-   ROUTES
-------------------------------------- */
 
 // Health check
 app.get("/healthz", (req, res) => {
@@ -126,9 +138,6 @@ app.get("/:code", async (req, res) => {
   }
 });
 
-/* -------------------------------------
-   SERVER START
-------------------------------------- */
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
